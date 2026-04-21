@@ -11,7 +11,7 @@
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
+            android:theme="@style/CropperTheme"/>
 
         <activity
             android:name=".MainActivity"

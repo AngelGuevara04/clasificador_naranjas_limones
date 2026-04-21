@@ -4,7 +4,6 @@ import 'package:image/image.dart' as img;
 import 'dart:math';
 import 'classification_result.dart';
 
-// Estructura para guardar cada foto de tu dataset
 class DataPoint {
   final List<double> features;
   final String label;
@@ -13,12 +12,10 @@ class DataPoint {
 }
 
 class KNNClassifier {
-  // Número de vecinos a consultar (Se usa un número impar para evitar empates)
   final int k = 3;
-
-  // Umbral de rigor para evitar Falsos Positivos (papas, cebollas)
   final double distanceThreshold = 55.0;
 
+  // --- MANTÉN AQUÍ TU DATASET REAL ---
   final List<DataPoint> knownDataset = [
     DataPoint([144.7, 175.4, 82.7], 'Limón'),
     DataPoint([156.9, 172.2, 85.9], 'Limón'),
@@ -489,25 +486,47 @@ class KNNClassifier {
       return ClassificationResult(label: "Error al procesar la imagen", isMatch: false);
     }
 
-    // 1. Extraemos el color promedio de la nueva foto (recortada)
     List<double> newFeatures = _calculateAverageRgb(decodedImage);
 
-    // 2. Calculamos la distancia de esta nueva foto contra TODAS las fotos del dataset
+    double r = newFeatures[0];
+    double g = newFeatures[1];
+    double b = newFeatures[2];
+
+    // ----------------------------------------------------------------
+    // 🛡️ NUEVO: PRE-FILTROS DE SEGURIDAD (ANTI-TAPETES Y FLASH)
+    // ----------------------------------------------------------------
+
+    // 1. Filtro de Oscuridad (Si el promedio de todo es muy bajo, es casi negro)
+    if (r < 40 && g < 40 && b < 40) {
+      return ClassificationResult(label: "Demasiado oscuro (No es fruta)", isMatch: false);
+    }
+
+    // 2. Filtro de Saturación (Anti Grises/Blancos/Tapetes con flash)
+    // Calculamos la diferencia entre el color más fuerte y el más débil.
+    // Si la diferencia es muy pequeña, significa que es un color "neutro/grisáceo".
+    double maxColor = [r, g, b].reduce(max);
+    double minColor = [r, g, b].reduce(min);
+
+    if (maxColor - minColor < 35) {
+      // La imagen no tiene un color vibrante dominante.
+      return ClassificationResult(label: "No se encuentra clasificado.", isMatch: false);
+    }
+    // ----------------------------------------------------------------
+
+    // 3. Flujo KNN normal (Si pasó los filtros de seguridad)
     List<MapEntry<double, String>> distances = [];
     for (var point in knownDataset) {
       double dist = _calculateEuclideanDistance(newFeatures, point.features);
       distances.add(MapEntry(dist, point.label));
     }
 
-    // 3. Ordenamos de menor distancia a mayor distancia (los más cercanos primero)
     distances.sort((a, b) => a.key.compareTo(b.key));
 
-    // 4. Regla de rechazo estricta: Si incluso el vecino MÁS cercano está muy lejos, no es ni limón ni naranja.
+    // Regla de rechazo estricta
     if (distances.first.key > distanceThreshold) {
       return ClassificationResult(label: "No se encontraron coincidencias", isMatch: false);
     }
 
-    // 5. KNN Votación: Tomamos los 'K' primeros vecinos
     int lemonVotes = 0;
     int orangeVotes = 0;
 
@@ -519,7 +538,6 @@ class KNNClassifier {
       }
     }
 
-    // 6. Declaramos al ganador
     if (lemonVotes > orangeVotes) {
       return ClassificationResult(label: "Limón", isMatch: true);
     } else {
