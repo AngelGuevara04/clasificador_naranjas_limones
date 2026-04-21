@@ -13,10 +13,10 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  # Paquetes agregados para la funcionalidad:
   image_picker: ^1.0.7
   provider: ^6.1.1
   image: ^4.1.4
+  image_cropper: ^8.0.0
 
 dev_dependencies:
   flutter_test:
